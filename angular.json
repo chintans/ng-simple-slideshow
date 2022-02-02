@@ -1,5 +1,8 @@
 {
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "cli": {
+    "analytics": "28f9d049-c95f-4849-a32b-6cdb98a2c577"
+  },
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
@@ -29,8 +32,7 @@
             "production": {
               "optimization": true,
               "outputHashing": "all",
-              "sourceMap": false,
-              "extractCss": true,
+              "sourceMap": false,              
               "namedChunks": false,
               "aot": true,
               "extractLicenses": true,
@@ -118,8 +120,7 @@
   "defaultProject": "ng-simple-slideshow",
   "schematics": {
     "@schematics/angular:component": {
-      "prefix": "app",
-      "styleext": "scss"
+      "prefix": "app"      
     },
     "@schematics/angular:directive": {
       "prefix": "app"

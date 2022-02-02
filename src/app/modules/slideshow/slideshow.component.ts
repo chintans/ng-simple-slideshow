@@ -1,58 +1,84 @@
-import { Component, ElementRef, EventEmitter, Inject, Input, Output, PLATFORM_ID, Renderer2, ViewChild, DoCheck, NgZone, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, OnChanges, SimpleChanges, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Inject,
+  Input,
+  Output,
+  PLATFORM_ID,
+  Renderer2,
+  ViewChild,
+  DoCheck,
+  NgZone,
+  OnInit,
+  OnDestroy,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  OnChanges,
+  SimpleChanges,
+  AfterViewInit,
+} from "@angular/core";
 // import { SwipeService } from './swipe.service';
-import { isPlatformServer, DOCUMENT } from '@angular/common';
-import { ISlide } from './ISlide';
-import { IImage } from './IImage';
-import { DomSanitizer, TransferState, makeStateKey, SafeStyle } from '@angular/platform-browser';
-import { PointerService } from './pointer.service';
-import { Subscription } from 'rxjs';
+import { isPlatformServer, DOCUMENT } from "@angular/common";
+import { ISlide } from "./ISlide";
+import { IImage } from "./IImage";
+import {
+  DomSanitizer,
+  TransferState,
+  makeStateKey,
+  SafeStyle,
+} from "@angular/platform-browser";
+import { PointerService } from "./pointer.service";
+import { Subscription } from "rxjs";
 
-const FIRST_SLIDE_KEY = makeStateKey<any>('firstSlide');
+const FIRST_SLIDE_KEY = makeStateKey<any>("firstSlide");
 
 @Component({
-  selector: 'slideshow',
-  templateUrl: './slideshow.component.html',
-  styleUrls: ['./slideshow.component.scss'],
+  selector: "slideshow",
+  templateUrl: "./slideshow.component.html",
+  styleUrls: ["./slideshow.component.scss"],
   providers: [PointerService],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnChanges, OnDestroy {
-  slideIndex: number = -1;
+export class SlideshowComponent
+  implements OnInit, AfterViewInit, DoCheck, OnChanges, OnDestroy
+{
+  slideIndex = -1;
   slides: ISlide[] = [];
-  hideLeftArrow: boolean = false;
-  hideRightArrow: boolean = false;
+  hideLeftArrow = false;
+  hideRightArrow = false;
   private _urlCache: (string | IImage)[];
   private _autoplayIntervalId: any;
-  private _initial: boolean = true;
-  private _isHidden: boolean = false;
+  private _initial = true;
+  private _isHidden = false;
   private _slideSub: Subscription;
   private _clickSub: Subscription;
 
   @Input() imageUrls: (string | IImage)[] = [];
-  @Input() height: string = '100%';
+  @Input() height = "100%";
   @Input() minHeight: string;
   @Input() arrowSize: string;
-  @Input() showArrows: boolean = true;
-  @Input() disableSwiping: boolean = false;
-  @Input() autoPlay: boolean = false;
-  @Input() autoPlayInterval: number = 3333;
-  @Input() stopAutoPlayOnSlide: boolean = true;
-  @Input() autoPlayWaitForLazyLoad: boolean = true;
+  @Input() showArrows = true;
+  @Input() disableSwiping = false;
+  @Input() autoPlay = false;
+  @Input() autoPlayInterval = 3333;
+  @Input() stopAutoPlayOnSlide = true;
+  @Input() autoPlayWaitForLazyLoad = true;
   @Input() debug: boolean;
-  @Input() backgroundSize: string = 'cover';
-  @Input() backgroundPosition: string = 'center center';
-  @Input() backgroundRepeat: string = 'no-repeat';
-  @Input() showDots: boolean = false;
-  @Input() dotColor: string = '#FFF';
-  @Input() showCaptions: boolean = true;
-  @Input() captionColor: string = '#FFF';
-  @Input() captionBackground: string = 'rgba(0, 0, 0, .35)';
-  @Input() lazyLoad: boolean = false;
-  @Input() hideOnNoSlides: boolean = false;
-  @Input() fullscreen: boolean = false;
-  @Input() enableZoom: boolean = false;
-  @Input() enablePan: boolean = false;
-  @Input() noLoop: boolean = false;
+  @Input() backgroundSize = "cover";
+  @Input() backgroundPosition = "center center";
+  @Input() backgroundRepeat = "no-repeat";
+  @Input() showDots = false;
+  @Input() dotColor = "#FFF";
+  @Input() showCaptions = true;
+  @Input() captionColor = "#FFF";
+  @Input() captionBackground = "rgba(0, 0, 0, .35)";
+  @Input() lazyLoad = false;
+  @Input() hideOnNoSlides = false;
+  @Input() fullscreen = false;
+  @Input() enableZoom = false;
+  @Input() enablePan = false;
+  @Input() noLoop = false;
 
   @Output() onSlideLeft = new EventEmitter<number>();
   @Output() onSlideRight = new EventEmitter<number>();
@@ -61,14 +87,16 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
   @Output() onFullscreenExit = new EventEmitter<boolean>();
   @Output() onIndexChanged = new EventEmitter<number>();
   @Output() onImageLazyLoad = new EventEmitter<ISlide>();
-  @Output() onClick = new EventEmitter<{ slide: ISlide, index: number }>();
+  @Output() onClick = new EventEmitter<{ slide: ISlide; index: number }>();
 
-  @ViewChild('container') container: ElementRef;
-  @ViewChild('prevArrow') prevArrow: ElementRef;
-  @ViewChild('nextArrow') nextArrow: ElementRef;
+  @ViewChild("container") container: ElementRef;
+  @ViewChild("prevArrow") prevArrow: ElementRef;
+  @ViewChild("nextArrow") nextArrow: ElementRef;
 
   get safeStyleDotColor(): SafeStyle {
-    return this.sanitizer.bypassSecurityTrustStyle(`--dot-color: ${ this.dotColor }`);
+    return this.sanitizer.bypassSecurityTrustStyle(
+      `--dot-color: ${this.dotColor}`
+    );
   }
 
   constructor(
@@ -80,15 +108,19 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
     public sanitizer: DomSanitizer,
     @Inject(PLATFORM_ID) private platform_id: any,
     @Inject(DOCUMENT) private document: any
-  ) { }
+  ) {}
 
   ngOnInit() {
     if (this.debug !== undefined) {
-      console.warn('[Deprecation Warning]: The debug input will be removed from ng-simple-slideshow in 1.3.0');
+      console.warn(
+        "[Deprecation Warning]: The debug input will be removed from ng-simple-slideshow in 1.3.0"
+      );
     }
-    this._slideSub = this._pointerService.slideEvent.subscribe((indexDirection: number) => {
-      this.onSlide(indexDirection, true);
-    });
+    this._slideSub = this._pointerService.slideEvent.subscribe(
+      (indexDirection: number) => {
+        this.onSlide(indexDirection, true);
+      }
+    );
     this._clickSub = this._pointerService.clickEvent.subscribe(() => {
       this._onClick();
     });
@@ -106,45 +138,54 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
       if (this._slideSub && !this._slideSub.closed) {
         this._slideSub.unsubscribe();
       }
-    }
-    catch (error) {
-      console.warn('Slide Subscription error caught in ng-simple-slideshow OnDestroy:', error);
+    } catch (error) {
+      console.warn(
+        "Slide Subscription error caught in ng-simple-slideshow OnDestroy:",
+        error
+      );
     }
 
     try {
       if (this._clickSub && !this._clickSub.closed) {
         this._clickSub.unsubscribe();
       }
-    }
-    catch (error) {
-      console.warn('Click Subscription error caught in ng-simple-slideshow OnDestroy:', error);
+    } catch (error) {
+      console.warn(
+        "Click Subscription error caught in ng-simple-slideshow OnDestroy:",
+        error
+      );
     }
 
     try {
       this._pointerService.unbind(this.container);
-    }
-    catch (error) {
-      console.warn('Pointer Service unbind error caught in ng-simple-slideshow OnDestroy:', error);
+    } catch (error) {
+      console.warn(
+        "Pointer Service unbind error caught in ng-simple-slideshow OnDestroy:",
+        error
+      );
     }
 
     try {
       if (this._autoplayIntervalId) {
-        this._ngZone.runOutsideAngular(() => clearInterval(this._autoplayIntervalId));
+        this._ngZone.runOutsideAngular(() =>
+          clearInterval(this._autoplayIntervalId)
+        );
         this._autoplayIntervalId = null;
       }
-    }
-    catch (error) {
-      console.warn('Autoplay cancel error caught in ng-simple-slideshow OnDestroy:', error);
+    } catch (error) {
+      console.warn(
+        "Autoplay cancel error caught in ng-simple-slideshow OnDestroy:",
+        error
+      );
     }
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['noLoop']) {
-      if (changes['noLoop'].currentValue) {
+    if (changes["noLoop"]) {
+      if (changes["noLoop"].currentValue) {
         this.hideLeftArrow = this.slideIndex <= 0;
         this.hideRightArrow = this.slideIndex === this.slides.length - 1;
-      }
-      else {
+      } else {
         this.hideLeftArrow = false;
         this.hideRightArrow = false;
       }
@@ -161,14 +202,13 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
       }
 
       if (this._isHidden === true) {
-        this._renderer.removeStyle(this.container.nativeElement, 'display');
+        this._renderer.removeStyle(this.container.nativeElement, "display");
         this._isHidden = false;
       }
 
       this.setSlides();
-    }
-    else if (this.hideOnNoSlides === true) {
-      this._renderer.setStyle(this.container.nativeElement, 'display', 'none');
+    } else if (this.hideOnNoSlides === true) {
+      this._renderer.setStyle(this.container.nativeElement, "display", "none");
       this._isHidden = true;
     }
 
@@ -220,8 +260,7 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
 
     if (currentSlide && currentSlide.image.clickAction) {
       currentSlide.image.clickAction();
-    }
-    else if (currentSlide && currentSlide.image.href) {
+    } else if (currentSlide && currentSlide.image.href) {
       this.document.location.href = currentSlide.image.href;
     }
   }
@@ -256,19 +295,20 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
 
     if (slide && slide.loaded) {
       return {
-        "background-image": 'url(' + slide.image.url + ')',
+        "background-image": "url(" + slide.image.url + ")",
         "background-size": slide.image.backgroundSize || this.backgroundSize,
-        "background-position": slide.image.backgroundPosition || this.backgroundPosition,
-        "background-repeat": slide.image.backgroundRepeat || this.backgroundRepeat
+        "background-position":
+          slide.image.backgroundPosition || this.backgroundPosition,
+        "background-repeat":
+          slide.image.backgroundRepeat || this.backgroundRepeat,
       };
-    }
-    else {
+    } else {
       // doesn't compile correctly if returning an empty object, sooooo.....
       return {
         "background-image": undefined,
         "background-size": undefined,
         "background-position": undefined,
-        "background-repeat": undefined
+        "background-repeat": undefined,
       };
     }
   }
@@ -288,14 +328,16 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
     const oldIndex = this.slideIndex;
 
     if (this.setSlideIndex(indexDirection)) {
-      if (this.slides[this.slideIndex] && !this.slides[this.slideIndex].loaded) {
+      if (
+        this.slides[this.slideIndex] &&
+        !this.slides[this.slideIndex].loaded
+      ) {
         this.loadRemainingSlides();
       }
 
       if (indexDirection === 1) {
         this.slideRight(oldIndex, isSwipe);
-      }
-      else {
+      } else {
         this.slideLeft(oldIndex, isSwipe);
       }
 
@@ -324,18 +366,15 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
         this.slideIndex -= indexDirection;
         willChange = false;
         this.hideLeftArrow = true;
-      }
-      else {
+      } else {
         this.slideIndex = this.slides.length - 1;
       }
-    }
-    else if (this.slideIndex >= this.slides.length) {
+    } else if (this.slideIndex >= this.slides.length) {
       if (this.noLoop) {
         this.slideIndex -= indexDirection;
         willChange = false;
         this.hideRightArrow = true;
-      }
-      else {
+      } else {
         this.slideIndex = 0;
       }
     }
@@ -357,17 +396,16 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
   private slideLeft(oldIndex: number, isSwipe?: boolean): void {
     if (isSwipe === true) {
       this.onSwipeLeft.emit(this.slideIndex);
-    }
-    else {
+    } else {
       this.onSlideLeft.emit(this.slideIndex);
     }
 
     this.slides[this.getLeftSideIndex(oldIndex)].leftSide = false;
     this.slides[oldIndex].leftSide = true;
-    this.slides[oldIndex].action = 'slideOutLeft';
+    this.slides[oldIndex].action = "slideOutLeft";
     this.slides[this.slideIndex].rightSide = false;
     this.slides[this.getRightSideIndex()].rightSide = true;
-    this.slides[this.slideIndex].action = 'slideInRight';
+    this.slides[this.slideIndex].action = "slideInRight";
   }
 
   /**
@@ -380,17 +418,16 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
   private slideRight(oldIndex: number, isSwipe?: boolean): void {
     if (isSwipe === true) {
       this.onSwipeRight.emit(this.slideIndex);
-    }
-    else {
+    } else {
       this.onSlideRight.emit(this.slideIndex);
     }
 
     this.slides[this.getRightSideIndex(oldIndex)].rightSide = false;
     this.slides[oldIndex].rightSide = true;
-    this.slides[oldIndex].action = 'slideOutRight';
+    this.slides[oldIndex].action = "slideOutRight";
     this.slides[this.slideIndex].leftSide = false;
     this.slides[this.getLeftSideIndex()].leftSide = true;
-    this.slides[this.slideIndex].action = 'slideInLeft';
+    this.slides[this.slideIndex].action = "slideInLeft";
   }
 
   /**
@@ -405,8 +442,7 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
 
         if (this.lazyLoad === true) {
           this.buildLazyLoadSlideArray();
-        }
-        else {
+        } else {
           this.buildSlideArray();
         }
         this._cdRef.detectChanges();
@@ -419,14 +455,17 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
    *              for the "lazy load," then load only the first slide
    */
   private buildLazyLoadSlideArray(): void {
-    for (let image of this.imageUrls) {
+    for (const image of this.imageUrls) {
       this.slides.push({
-        image: (typeof image === 'string' ? { url: null } : { url: null, href: image.href || '' }),
-        action: '',
+        image:
+          typeof image === "string"
+            ? { url: null }
+            : { url: null, href: image.href || "" },
+        action: "",
         leftSide: false,
         rightSide: false,
         selected: false,
-        loaded: false
+        loaded: false,
       });
     }
     if (this.slideIndex === -1) {
@@ -441,14 +480,14 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
    * @description create the slides with background urls all at once
    */
   private buildSlideArray(): void {
-    for (let image of this.imageUrls) {
+    for (const image of this.imageUrls) {
       this.slides.push({
-        image: (typeof image === 'string' ? { url: image } : image),
-        action: '',
+        image: typeof image === "string" ? { url: image } : image,
+        action: "",
         leftSide: false,
         rightSide: false,
         selected: false,
-        loaded: true
+        loaded: true,
       });
     }
     if (this.slideIndex === -1) {
@@ -468,24 +507,27 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
 
     // if server side, we don't need to worry about the rest of the slides
     if (isPlatformServer(this.platform_id)) {
-      this.slides[tmpIndex].image = (typeof tmpImage === 'string' ? { url: tmpImage } : tmpImage);
+      this.slides[tmpIndex].image =
+        typeof tmpImage === "string" ? { url: tmpImage } : tmpImage;
       this.slides[tmpIndex].loaded = true;
       this._transferState.set(FIRST_SLIDE_KEY, this.slides[tmpIndex]);
-    }
-    else {
-      const firstSlideFromTransferState = this._transferState.get(FIRST_SLIDE_KEY, null as any);
+    } else {
+      const firstSlideFromTransferState = this._transferState.get(
+        FIRST_SLIDE_KEY,
+        null as any
+      );
       // if the first slide didn't finish loading on the server side, we need to load it
       if (firstSlideFromTransferState === null) {
-        let loadImage = new Image();
-        loadImage.src = (typeof tmpImage === 'string' ? tmpImage : tmpImage.url);
-        loadImage.addEventListener('load', () => {
-          this.slides[tmpIndex].image = (typeof tmpImage === 'string' ? { url: tmpImage } : tmpImage);
+        const loadImage = new Image();
+        loadImage.src = typeof tmpImage === "string" ? tmpImage : tmpImage.url;
+        loadImage.addEventListener("load", () => {
+          this.slides[tmpIndex].image =
+            typeof tmpImage === "string" ? { url: tmpImage } : tmpImage;
           this.slides[tmpIndex].loaded = true;
           this.onImageLazyLoad.emit(this.slides[tmpIndex]);
           this._cdRef.detectChanges();
         });
-      }
-      else {
+      } else {
         this.slides[tmpIndex] = firstSlideFromTransferState;
         this._transferState.remove(FIRST_SLIDE_KEY);
       }
@@ -499,17 +541,19 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
   private loadRemainingSlides(): void {
     for (let i = 0; i < this.slides.length; i++) {
       if (!this.slides[i].loaded) {
-        new Promise((resolve) => {
+        new Promise<void>((resolve) => {
           const tmpImage = this.imageUrls[i];
-          let loadImage = new Image();
-          loadImage.addEventListener('load', () => {
-            this.slides[i].image = (typeof tmpImage === 'string' ? { url: tmpImage } : tmpImage);
+          const loadImage = new Image();
+          loadImage.addEventListener("load", () => {
+            this.slides[i].image =
+              typeof tmpImage === "string" ? { url: tmpImage } : tmpImage;
             this.slides[i].loaded = true;
             this._cdRef.detectChanges();
             this.onImageLazyLoad.emit(this.slides[i]);
             resolve();
           });
-          loadImage.src = (typeof tmpImage === 'string' ? tmpImage : tmpImage.url);
+          loadImage.src =
+            typeof tmpImage === "string" ? tmpImage : tmpImage.url;
         });
       }
     }
@@ -526,14 +570,20 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
 
     if (stopAutoPlay === true || this.autoPlay === false) {
       if (this._autoplayIntervalId) {
-        this._ngZone.runOutsideAngular(() => clearInterval(this._autoplayIntervalId));
+        this._ngZone.runOutsideAngular(() =>
+          clearInterval(this._autoplayIntervalId)
+        );
         this._autoplayIntervalId = null;
       }
-    }
-    else if (!this._autoplayIntervalId) {
+    } else if (!this._autoplayIntervalId) {
       this._ngZone.runOutsideAngular(() => {
         this._autoplayIntervalId = setInterval(() => {
-          if (!this.autoPlayWaitForLazyLoad || (this.autoPlayWaitForLazyLoad && this.slides[this.slideIndex] && this.slides[this.slideIndex].loaded)) {
+          if (
+            !this.autoPlayWaitForLazyLoad ||
+            (this.autoPlayWaitForLazyLoad &&
+              this.slides[this.slideIndex] &&
+              this.slides[this.slideIndex].loaded)
+          ) {
             this._ngZone.run(() => this.slide(1));
           }
         }, this.autoPlayInterval);
@@ -546,26 +596,56 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
    */
   private setStyles(): void {
     if (this.fullscreen) {
-      this._renderer.setStyle(this.container.nativeElement, 'height', '100%');
+      this._renderer.setStyle(this.container.nativeElement, "height", "100%");
       // Would be nice to make it configurable
-      this._renderer.setStyle(this.container.nativeElement, 'background-color', 'white');
-    }
-    else {
+      this._renderer.setStyle(
+        this.container.nativeElement,
+        "background-color",
+        "white"
+      );
+    } else {
       // Would be nice to make it configurable
-      this._renderer.removeStyle(this.container.nativeElement, 'background-color');
+      this._renderer.removeStyle(
+        this.container.nativeElement,
+        "background-color"
+      );
       if (this.height) {
-        this._renderer.setStyle(this.container.nativeElement, 'height', this.height);
+        this._renderer.setStyle(
+          this.container.nativeElement,
+          "height",
+          this.height
+        );
       }
 
       if (this.minHeight) {
-        this._renderer.setStyle(this.container.nativeElement, 'min-height', this.minHeight);
+        this._renderer.setStyle(
+          this.container.nativeElement,
+          "min-height",
+          this.minHeight
+        );
       }
     }
     if (this.arrowSize) {
-      this._renderer.setStyle(this.prevArrow.nativeElement, 'height', this.arrowSize);
-      this._renderer.setStyle(this.prevArrow.nativeElement, 'width', this.arrowSize);
-      this._renderer.setStyle(this.nextArrow.nativeElement, 'height', this.arrowSize);
-      this._renderer.setStyle(this.nextArrow.nativeElement, 'width', this.arrowSize);
+      this._renderer.setStyle(
+        this.prevArrow.nativeElement,
+        "height",
+        this.arrowSize
+      );
+      this._renderer.setStyle(
+        this.prevArrow.nativeElement,
+        "width",
+        this.arrowSize
+      );
+      this._renderer.setStyle(
+        this.nextArrow.nativeElement,
+        "height",
+        this.arrowSize
+      );
+      this._renderer.setStyle(
+        this.nextArrow.nativeElement,
+        "width",
+        this.arrowSize
+      );
     }
   }
 
@@ -573,7 +653,12 @@ export class SlideshowComponent implements OnInit, AfterViewInit, DoCheck, OnCha
    * @description compare image array to the cache, returns false if no changes
    */
   private checkCache(): boolean {
-    return !(this._urlCache.length === this.imageUrls.length && this._urlCache.every((cacheElement, i) => cacheElement === this.imageUrls[i]));
+    return !(
+      this._urlCache.length === this.imageUrls.length &&
+      this._urlCache.every(
+        (cacheElement, i) => cacheElement === this.imageUrls[i]
+      )
+    );
   }
 
   /**
