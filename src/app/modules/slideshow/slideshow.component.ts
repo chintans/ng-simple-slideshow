@@ -47,24 +47,27 @@ export class SlideshowComponent
   slides: ISlide[] = [];
   hideLeftArrow = false;
   hideRightArrow = false;
-  private _urlCache: (string | IImage)[];
-  private _autoplayIntervalId: any;
+  private _urlCache!: (string | IImage)[];
+  private _autoplayIntervalId: number | undefined;
   private _initial = true;
   private _isHidden = false;
-  private _slideSub: Subscription;
-  private _clickSub: Subscription;
+  private _slideSub!: Subscription;
+  private _clickSub!: Subscription;
 
   @Input() imageUrls: (string | IImage)[] = [];
   @Input() height = "100%";
-  @Input() minHeight: string;
-  @Input() arrowSize: string;
+  @Input()
+  minHeight!: string;
+  @Input()
+  arrowSize!: string;
   @Input() showArrows = true;
   @Input() disableSwiping = false;
   @Input() autoPlay = false;
   @Input() autoPlayInterval = 3333;
   @Input() stopAutoPlayOnSlide = true;
   @Input() autoPlayWaitForLazyLoad = true;
-  @Input() debug: boolean;
+  @Input()
+  debug!: boolean;
   @Input() backgroundSize = "cover";
   @Input() backgroundPosition = "center center";
   @Input() backgroundRepeat = "no-repeat";
@@ -89,9 +92,12 @@ export class SlideshowComponent
   @Output() onImageLazyLoad = new EventEmitter<ISlide>();
   @Output() onClick = new EventEmitter<{ slide: ISlide; index: number }>();
 
-  @ViewChild("container") container: ElementRef;
-  @ViewChild("prevArrow") prevArrow: ElementRef;
-  @ViewChild("nextArrow") nextArrow: ElementRef;
+  @ViewChild("container")
+  container!: ElementRef;
+  @ViewChild("prevArrow")
+  prevArrow!: ElementRef;
+  @ViewChild("nextArrow")
+  nextArrow!: ElementRef;
 
   get safeStyleDotColor(): SafeStyle {
     return this.sanitizer.bypassSecurityTrustStyle(
@@ -106,8 +112,8 @@ export class SlideshowComponent
     private _ngZone: NgZone,
     private _cdRef: ChangeDetectorRef,
     public sanitizer: DomSanitizer,
-    @Inject(PLATFORM_ID) private platform_id: any,
-    @Inject(DOCUMENT) private document: any
+    @Inject(PLATFORM_ID) private platform_id: string,
+    @Inject(DOCUMENT) private document: Document
   ) {}
 
   ngOnInit() {
@@ -118,7 +124,7 @@ export class SlideshowComponent
     }
     this._slideSub = this._pointerService.slideEvent.subscribe(
       (indexDirection: number) => {
-        this.onSlide(indexDirection, true);
+        void this.onSlide(indexDirection, true);
       }
     );
     this._clickSub = this._pointerService.clickEvent.subscribe(() => {
@@ -157,7 +163,7 @@ export class SlideshowComponent
     }
 
     try {
-      this._pointerService.unbind(this.container);
+      this._pointerService.unbind();
     } catch (error) {
       console.warn(
         "Pointer Service unbind error caught in ng-simple-slideshow OnDestroy:",
@@ -170,7 +176,7 @@ export class SlideshowComponent
         this._ngZone.runOutsideAngular(() =>
           clearInterval(this._autoplayIntervalId)
         );
-        this._autoplayIntervalId = null;
+        this._autoplayIntervalId = undefined;
       }
     } catch (error) {
       console.warn(
@@ -226,9 +232,9 @@ export class SlideshowComponent
    *              indexDirection to move back is -1, to move forward is 1, and to stay in place is 0.
    *              0 is taken into account for failed swipes
    */
-  onSlide(indexDirection: number, isSwipe?: boolean): void {
+  async onSlide(indexDirection: number, isSwipe?: boolean) {
     this.handleAutoPlay(this.stopAutoPlayOnSlide);
-    this.slide(indexDirection, isSwipe);
+    await this.slide(indexDirection, isSwipe);
   }
 
   // /**
@@ -255,7 +261,8 @@ export class SlideshowComponent
    * @description Redirect to current slide "href" if defined
    */
   private _onClick(): void {
-    const currentSlide = this.slides.length > 0 && this.slides[this.slideIndex];
+    const currentSlide =
+      this.slides.length > 0 ? this.slides[this.slideIndex] : ({} as ISlide);
     this.onClick.emit({ slide: currentSlide, index: this.slideIndex });
 
     if (currentSlide && currentSlide.image.clickAction) {
@@ -269,13 +276,13 @@ export class SlideshowComponent
    * @param {number} index
    * @description set the index to the desired index - 1 and simulate a right slide
    */
-  goToSlide(index: number) {
+  async goToSlide(index: number) {
     const beforeClickIndex = this.slideIndex;
     this.slideIndex = index - 1;
     this.setSlideIndex(1);
 
     if (this.slides[this.slideIndex] && !this.slides[this.slideIndex].loaded) {
-      this.loadRemainingSlides();
+      await this.loadRemainingSlides();
     }
 
     this.handleAutoPlay(this.stopAutoPlayOnSlide);
@@ -295,7 +302,7 @@ export class SlideshowComponent
 
     if (slide && slide.loaded) {
       return {
-        "background-image": "url(" + slide.image.url + ")",
+        "background-image": `url(${slide.image.url as string})`,
         "background-size": slide.image.backgroundSize || this.backgroundSize,
         "background-position":
           slide.image.backgroundPosition || this.backgroundPosition,
@@ -324,7 +331,7 @@ export class SlideshowComponent
    * @param {boolean} isSwipe
    * @description Set the new slide index, then make the transition happen.
    */
-  private slide(indexDirection: number, isSwipe?: boolean): void {
+  private async slide(indexDirection: number, isSwipe?: boolean) {
     const oldIndex = this.slideIndex;
 
     if (this.setSlideIndex(indexDirection)) {
@@ -332,7 +339,7 @@ export class SlideshowComponent
         this.slides[this.slideIndex] &&
         !this.slides[this.slideIndex].loaded
       ) {
-        this.loadRemainingSlides();
+        await this.loadRemainingSlides();
       }
 
       if (indexDirection === 1) {
@@ -514,12 +521,13 @@ export class SlideshowComponent
     } else {
       const firstSlideFromTransferState = this._transferState.get(
         FIRST_SLIDE_KEY,
-        null as any
-      );
+        null
+      ) as ISlide;
       // if the first slide didn't finish loading on the server side, we need to load it
       if (firstSlideFromTransferState === null) {
         const loadImage = new Image();
-        loadImage.src = typeof tmpImage === "string" ? tmpImage : tmpImage.url;
+        loadImage.src =
+          typeof tmpImage === "string" ? tmpImage : (tmpImage.url as string);
         loadImage.addEventListener("load", () => {
           this.slides[tmpIndex].image =
             typeof tmpImage === "string" ? { url: tmpImage } : tmpImage;
@@ -538,10 +546,10 @@ export class SlideshowComponent
    * @description if lazy loading in browser, start loading remaining slides
    * @todo: figure out how to not show the spinner if images are loading fast enough
    */
-  private loadRemainingSlides(): void {
+  private async loadRemainingSlides(): Promise<void> {
     for (let i = 0; i < this.slides.length; i++) {
       if (!this.slides[i].loaded) {
-        new Promise<void>((resolve) => {
+        return new Promise<void>((resolve) => {
           const tmpImage = this.imageUrls[i];
           const loadImage = new Image();
           loadImage.addEventListener("load", () => {
@@ -553,7 +561,7 @@ export class SlideshowComponent
             resolve();
           });
           loadImage.src =
-            typeof tmpImage === "string" ? tmpImage : tmpImage.url;
+            typeof tmpImage === "string" ? tmpImage : (tmpImage.url as string);
         });
       }
     }
@@ -563,7 +571,7 @@ export class SlideshowComponent
    * @param {boolean} stopAutoPlay
    * @description Start or stop autoPlay, don't do it at all server side
    */
-  private handleAutoPlay(stopAutoPlay?: boolean): void {
+  private handleAutoPlay(stopAutoPlay?: boolean) {
     if (isPlatformServer(this.platform_id)) {
       return;
     }
@@ -573,18 +581,20 @@ export class SlideshowComponent
         this._ngZone.runOutsideAngular(() =>
           clearInterval(this._autoplayIntervalId)
         );
-        this._autoplayIntervalId = null;
+        this._autoplayIntervalId = undefined;
       }
     } else if (!this._autoplayIntervalId) {
       this._ngZone.runOutsideAngular(() => {
-        this._autoplayIntervalId = setInterval(() => {
+        setInterval(() => {
           if (
             !this.autoPlayWaitForLazyLoad ||
             (this.autoPlayWaitForLazyLoad &&
               this.slides[this.slideIndex] &&
               this.slides[this.slideIndex].loaded)
           ) {
-            this._ngZone.run(() => this.slide(1));
+            void this._ngZone.run(async () => {
+              return await this.slide(1);
+            });
           }
         }, this.autoPlayInterval);
       });
@@ -701,14 +711,14 @@ export class SlideshowComponent
    * @returns {any}
    * @description a trackBy function for the ngFor loops
    */
-  trackByFn(index: number, slide: ISlide): any {
+  trackByFn(index: number, slide: ISlide): IImage {
     return slide.image;
   }
 
   /**
    * @description don't let click events fire, handle in pointer service instead
    */
-  handleClick(event) {
+  handleClick(event: MouseEvent) {
     event.preventDefault();
   }
 }

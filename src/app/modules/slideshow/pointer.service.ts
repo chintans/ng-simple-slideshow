@@ -2,9 +2,9 @@ import {
   Injectable,
   ElementRef,
   EventEmitter,
-  Renderer2,
   Inject,
   PLATFORM_ID,
+  Renderer2,
   RendererFactory2,
 } from "@angular/core";
 import { isPlatformBrowser } from "@angular/common";
@@ -38,7 +38,7 @@ class State {
 
 @Injectable()
 export class PointerService {
-  // private _renderer: Renderer2;
+  private readonly _renderer: Renderer2;
 
   //options
   private _disableSwiping = false;
@@ -46,7 +46,9 @@ export class PointerService {
   private _enablePan = false;
 
   // adapted from https://github.com/mdn/dom-examples/blob/master/pointerevents/Pinch_zoom_gestures.html
-  private _startEVCache: PointerEvent = null;
+  // adapted from https://github.com/mdn/dom-examples/blob/master/pointerevents/Pinch_zoom_gestures.html
+
+  private _startEVCache!: PointerEvent;
   private _evCache: Array<PointerEvent> = [];
   private _previousDiagonal = -1;
   private _originalState: State = new State();
@@ -78,25 +80,61 @@ export class PointerService {
     this._enablePan = state;
   }
 
+  private pointerDownEvent!: () => void;
+  private pointerUpEvent!: () => void;
+  private pointerCancelEvent!: () => void;
+  private pointerOutEvent!: () => void;
+  private pointerLeaveEvent!: () => void;
+  private pointerMoveEvent!: () => void;
+
   bind(el: ElementRef) {
     if (isPlatformBrowser(this.platform_id)) {
-      el.nativeElement.addEventListener("pointerdown", this.pointerDown);
-      el.nativeElement.addEventListener("pointerup", this.pointerUp);
-      el.nativeElement.addEventListener("pointercancel", this.pointerUp);
-      el.nativeElement.addEventListener("pointerout", this.pointerUp);
-      el.nativeElement.addEventListener("pointerleave", this.pointerUp);
-      el.nativeElement.addEventListener("pointermove", this.pointerMove);
+      this.pointerDownEvent = this._renderer.listen(
+        el.nativeElement,
+        "pointerdown",
+        this.pointerDown
+      );
+      this.pointerDownEvent = this._renderer.listen(
+        el.nativeElement,
+        "pointerdown",
+        this.pointerDown
+      );
+      this.pointerUpEvent = this._renderer.listen(
+        el.nativeElement,
+        "pointerup",
+        this.pointerUp
+      );
+      this.pointerCancelEvent = this._renderer.listen(
+        el.nativeElement,
+        "pointercancel",
+        this.pointerUp
+      );
+      this.pointerOutEvent = this._renderer.listen(
+        el.nativeElement,
+        "pointerout",
+        this.pointerUp
+      );
+      this.pointerLeaveEvent = this._renderer.listen(
+        el.nativeElement,
+        "pointerleave",
+        this.pointerUp
+      );
+      this.pointerMoveEvent = this._renderer.listen(
+        el.nativeElement,
+        "pointermove",
+        this.pointerMove
+      );
     }
   }
 
-  unbind(el: ElementRef) {
+  unbind() {
     if (isPlatformBrowser(this.platform_id)) {
-      el.nativeElement.removeEventListener("pointerdown", this.pointerDown);
-      el.nativeElement.removeEventListener("pointerup", this.pointerUp);
-      el.nativeElement.removeEventListener("pointercancel", this.pointerUp);
-      el.nativeElement.removeEventListener("pointerout", this.pointerUp);
-      el.nativeElement.removeEventListener("pointerleave", this.pointerUp);
-      el.nativeElement.removeEventListener("pointermove", this.pointerMove);
+      this.pointerDownEvent();
+      this.pointerUpEvent();
+      this.pointerCancelEvent();
+      this.pointerOutEvent();
+      this.pointerLeaveEvent();
+      this.pointerMoveEvent();
     }
   }
 
@@ -109,10 +147,10 @@ export class PointerService {
   }
 
   constructor(
-    // rendererFactory: RendererFactory2,
-    @Inject(PLATFORM_ID) private platform_id: any
+    private readonly rendererFactory: RendererFactory2,
+    @Inject(PLATFORM_ID) private platform_id: string
   ) {
-    // this._renderer = rendererFactory.createRenderer(null, null);
+    this._renderer = rendererFactory.createRenderer(null, null);
   }
 
   private _pointerDown(e: PointerEvent) {
@@ -135,16 +173,16 @@ export class PointerService {
     if (
       !this._originalState.valid &&
       e.target &&
-      (e.target as any).style &&
-      (e.target as any).style.backgroundImage
+      (e.target as HTMLElement).style &&
+      (e.target as HTMLElement).style.backgroundImage
     ) {
-      const imgUrlArr = (e.target as any).style.backgroundImage.match(
+      const imgUrlArr = (e.target as HTMLElement).style.backgroundImage.match(
         /^url\(["']?(.+?)["']?\)$/
-      );
+      ) as RegExpMatchArray;
       const img = new Image();
       img.src = imgUrlArr[1];
-      this._originalState.aw = (e.target as any).offsetWidth;
-      this._originalState.ah = (e.target as any).offsetHeight;
+      this._originalState.aw = (e.target as HTMLElement).offsetWidth;
+      this._originalState.ah = (e.target as HTMLElement).offsetHeight;
       this._originalState.w = img.width;
       this._originalState.h = img.height;
     }
@@ -152,7 +190,7 @@ export class PointerService {
 
   // Convert BG size literals and percentage to pixels in x axis and preserve image aspect ratio
   private _convertBGSizeToPixels(e: PointerEvent): void {
-    const imgElement = e.target as any;
+    const imgElement = e.target as HTMLElement;
     let bgSize = imgElement.style.backgroundSize;
     if (bgSize.indexOf(" ") > -1) {
       // backgroundSize pattern "auto 100px" or "100px auto" or "100px 200px"
@@ -161,8 +199,8 @@ export class PointerService {
     }
     if (bgSize === "cover") {
       bgSize = this._originalState.widthBound
-        ? this._originalState.ah * this._originalState.ar
-        : this._originalState.aw;
+        ? String(this._originalState.ah * this._originalState.ar)
+        : String(this._originalState.aw);
     } else if (bgSize.indexOf("px") > -1) {
       bgSize = bgSize.substring(0, bgSize.length - 2);
     } else if (bgSize.indexOf("%") > -1) {
@@ -170,19 +208,21 @@ export class PointerService {
       const bgSizePercentage =
         Number(bgSize.substring(0, bgSize.length - 1)) / 100;
       bgSize = this._originalState.widthBound
-        ? this._originalState.aw * bgSizePercentage
-        : this._originalState.ah * bgSizePercentage * this._originalState.ar;
+        ? String(this._originalState.aw * bgSizePercentage)
+        : String(
+            this._originalState.ah * bgSizePercentage * this._originalState.ar
+          );
     } else if (bgSize === "auto") {
-      bgSize = this._originalState.w;
+      bgSize = String(this._originalState.w);
     } else if (bgSize === "contain") {
       bgSize = this._originalState.widthBound
-        ? this._originalState.aw
-        : this._originalState.ah * this._originalState.ar;
+        ? String(this._originalState.aw)
+        : String(this._originalState.ah * this._originalState.ar);
     } else {
       // backgroundSize pattern "could not identify" // will be treated as contain
       bgSize = this._originalState.widthBound
-        ? this._originalState.aw
-        : this._originalState.ah * this._originalState.ar;
+        ? String(this._originalState.aw)
+        : String(this._originalState.ah * this._originalState.ar);
     }
     imgElement.style.backgroundSize = bgSize + "px auto";
   }
@@ -190,27 +230,28 @@ export class PointerService {
   // Convert BG position literals and percentage to pixels
   private _convertBGPosToPixels(e: PointerEvent): void {
     if (this._originalState.valid) {
-      const imgElement = e.target as any;
-      const bgSize = this._currentBGSize(e);
+      const imgElement = e.target as HTMLElement;
+      const bgSize = this._currentBGSize(e) as number;
       let bgPosX = imgElement.style.backgroundPositionX;
       if (bgPosX.indexOf("px") === -1) {
-        bgPosX = this._convertLiteralPosToPercentage(bgPosX);
+        bgPosX = this._convertLiteralPosToPercentage(bgPosX) as string;
         if (bgPosX.indexOf("%") > -1) {
           const bgPosXPercentage =
             Number(bgPosX.substring(0, bgPosX.length - 1)) / 100;
-          bgPosX = bgPosXPercentage * (this._originalState.aw - bgSize);
+          bgPosX = String(bgPosXPercentage * (this._originalState.aw - bgSize));
         }
         imgElement.style.backgroundPositionX = bgPosX + "px";
       }
       let bgPosY = imgElement.style.backgroundPositionY;
       if (bgPosY.indexOf("px") === -1) {
-        bgPosY = this._convertLiteralPosToPercentage(bgPosY);
+        bgPosY = this._convertLiteralPosToPercentage(bgPosY) as string;
         if (bgPosY.indexOf("%") > -1) {
           const bgPosYPercentage =
             Number(bgPosY.substring(0, bgPosY.length - 1)) / 100;
-          bgPosY =
+          bgPosY = String(
             bgPosYPercentage *
-            (this._originalState.ah - bgSize / this._originalState.ar);
+              (this._originalState.ah - bgSize / this._originalState.ar)
+          );
         }
         imgElement.style.backgroundPositionY = bgPosY + "px";
       }
@@ -232,7 +273,7 @@ export class PointerService {
     // Purge start event and original state if no pointers are present
     if (this._evCache.length === 0 && this._startEVCache !== null) {
       this._checkClickOrSwipe(e);
-      this._startEVCache = null;
+      this._startEVCache;
       this._originalState = new State();
     }
   }
@@ -253,9 +294,9 @@ export class PointerService {
     if (!this._targetIsASlide(e)) {
       return;
     }
-    const duration = e.timeStamp - this._startEVCache.timeStamp;
-    const dirX = e.pageX - this._startEVCache.pageX;
-    const dirY = e.pageY - this._startEVCache.pageY;
+    const duration = e.timeStamp - this._startEVCache?.timeStamp;
+    const dirX = e.pageX - this._startEVCache?.pageX;
+    const dirY = e.pageY - this._startEVCache?.pageY;
     if (
       !this._enablePan && // Skip click event when panning is enabled
       Math.abs(dirX) < 15 && // Very less x movement
@@ -277,7 +318,7 @@ export class PointerService {
 
   // Deem the target is a slide if it contains the slides class
   private _targetIsASlide(e: PointerEvent): boolean {
-    return (e.target as any).classList.contains("slides");
+    return (e.target as HTMLElement).classList.contains("slides");
   }
 
   // Check if image can pan more in the swipe direction. Return false if it can.
@@ -287,7 +328,7 @@ export class PointerService {
       return true;
     }
     const xPos = this._currentBGPosX(e);
-    const bgSize = this._currentBGSize(e);
+    const bgSize = this._currentBGSize(e) as number;
     if (
       dirX < 0 &&
       bgSize > this._originalState.aw &&
@@ -356,7 +397,7 @@ export class PointerService {
 
   // Transform the image background position
   private _transformBGPosition(e: PointerEvent, dx: number, dy: number): void {
-    const imgElement = e.target as any;
+    const imgElement = e.target as HTMLElement;
     const previousPosX = this._currentBGPosX(e);
     const previousPosY = this._currentBGPosY(e);
     const newPosX = this._newBGPosXConstraint(previousPosX - dx, e);
@@ -367,14 +408,14 @@ export class PointerService {
   }
 
   // Set new background position
-  private _setBGPos(element: any, x: number, y: number): void {
-    element.style.backgroundPositionX = x + "px";
-    element.style.backgroundPositionY = y + "px";
+  private _setBGPos(element: HTMLElement, x: number, y: number): void {
+    element.style.backgroundPositionX = `${x}px`;
+    element.style.backgroundPositionY = `${y}px`;
   }
 
   // Check for current background position x
   private _currentBGPosX(e: PointerEvent): number {
-    let bgPosX = (e.target as any).style.backgroundPositionX;
+    let bgPosX = (e.target as HTMLElement).style.backgroundPositionX;
     if (bgPosX.indexOf("px") > -1) {
       bgPosX = bgPosX.substring(0, bgPosX.length - 2);
     }
@@ -383,14 +424,14 @@ export class PointerService {
 
   // Check for current background position y
   private _currentBGPosY(e: PointerEvent): number {
-    let bgPosY = (e.target as any).style.backgroundPositionY;
+    let bgPosY = (e.target as HTMLElement).style.backgroundPositionY;
     if (bgPosY.indexOf("px") > -1) {
       bgPosY = bgPosY.substring(0, bgPosY.length - 2);
     }
     return Number(bgPosY);
   }
 
-  private _convertLiteralPosToPercentage(literal: string): string {
+  private _convertLiteralPosToPercentage(literal: string): string | undefined {
     if (literal === "center") {
       return "50%";
     } else if (literal === "top" || literal === "left") {
@@ -402,23 +443,23 @@ export class PointerService {
 
   // Transform the image background size by deltaX
   private _transformBGSize(e: PointerEvent, deltaX: number): void {
-    const imgElement = e.target as any;
-    const currentSize = this._currentBGSize(e);
+    const imgElement = e.target as HTMLElement;
+    const currentSize = this._currentBGSize(e) as number;
     const newSize = this._newBGSizeConstraint(currentSize + deltaX);
     if (newSize !== currentSize) {
       this._setBGSize(imgElement, newSize);
     }
   }
 
-  private _setBGSize(element: any, size: number): void {
-    element.style.backgroundSize = size + "px auto";
+  private _setBGSize(element: HTMLElement, size: number): void {
+    element.style.backgroundSize = `${size}px auto`;
     // stop all browser touch action after zooming slide
     element.style.touchAction = "none";
   }
 
   // Check for current background size
-  private _currentBGSize(e: PointerEvent): number {
-    const bgSize = (e.target as any).style.backgroundSize;
+  private _currentBGSize(e: PointerEvent): number | undefined {
+    const bgSize = (e.target as HTMLElement).style.backgroundSize;
     if (bgSize.indexOf(" ") > -1) {
       // backgroundSize pattern "auto 100px" or "100px auto" or "100px 200px"
       const sizeTuple = bgSize.split(" ");
@@ -447,7 +488,7 @@ export class PointerService {
   }
 
   private _newBGPosXConstraint(newX: number, e: PointerEvent): number {
-    const bgSize = this._currentBGSize(e);
+    const bgSize = this._currentBGSize(e) as number;
     if (bgSize >= this._originalState.aw) {
       // when image width is greater than container width
       if (newX > 0) {
@@ -466,7 +507,7 @@ export class PointerService {
   }
 
   private _newBGPosYConstraint(newY: number, e: PointerEvent): number {
-    const bgSize = this._currentBGSize(e);
+    const bgSize = this._currentBGSize(e) as number;
     if (bgSize / this._originalState.ar >= this._originalState.ah) {
       // when image height is greater than container height
       if (newY > 0) {
