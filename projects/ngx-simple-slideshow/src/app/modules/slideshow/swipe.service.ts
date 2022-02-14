@@ -23,7 +23,7 @@ export class SwipeService {
     if (when === "start") {
       this._swipeCoord = coord;
       this._swipeTime = time;
-    } else if (when === "end") {
+    } else if (when === "end" && this._swipeCoord && this._swipeTime) {
       const direction = [
         coord[0] - this._swipeCoord[0],
         coord[1] - this._swipeCoord[1],

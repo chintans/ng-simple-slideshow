@@ -1,0 +1,11 @@
+{
+  "name": "ngx-simple-slideshow",
+  "version": "2.0.0",
+  "peerDependencies": {
+    "@angular/common": "^13.2.2",
+    "@angular/core": "^13.2.2"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
+}

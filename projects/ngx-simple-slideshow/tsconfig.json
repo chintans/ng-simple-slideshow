@@ -1,0 +1,26 @@
+{
+  "compileOnSave": false,
+  "angularCompilerOptions": {
+    "enableIvy": true,
+    "annotateForClosureCompiler": true,
+    "strictMetadataEmit": true,
+    "fullTemplateTypeCheck": true,
+    "strictInjectionParameters": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true
+  },
+  "compilerOptions": {
+    "outDir": "./dist/out-tsc",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "es5",
+    "forceConsistentCasingInFileNames": true,
+    "importHelpers": true,
+    "strict": true,
+    "typeRoots": ["node_modules/@types"],
+    "lib": ["es2017", "dom"]
+  }
+}

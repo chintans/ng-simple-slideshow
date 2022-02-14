@@ -31,7 +31,7 @@ import {
 import { PointerService } from "./pointer.service";
 import { Subscription } from "rxjs";
 
-const FIRST_SLIDE_KEY = makeStateKey<any>("firstSlide");
+const FIRST_SLIDE_KEY = makeStateKey<ISlide>("firstSlide");
 
 @Component({
   selector: "slideshow",

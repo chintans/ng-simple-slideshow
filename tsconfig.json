@@ -1,22 +1,43 @@
 {
   "compileOnSave": false,
+  "angularCompilerOptions": {        
+    "strictMetadataEmit": true,
+    "fullTemplateTypeCheck": true,
+    "strictInjectionParameters": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true,
+  },
   "compilerOptions": {
+    "baseUrl": "./",
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
     "declaration": false,
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "target": "es5",
+    "module": "ES2020",
+    "target": "ES2017",
     "forceConsistentCasingInFileNames": true,
     "importHelpers": true,
     "strict": true,
+    "downlevelIteration": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,    
     "typeRoots": [
       "node_modules/@types"
     ],
     "lib": [
-      "es2017",
+      "es2018",
       "dom"
-    ]
+    ],
+    "paths": {
+      "ngx-simple-slideshow": [
+        "dist/ngx-simple-slideshow/ngx-simple-slideshow",
+        "dist/ngx-simple-slideshow"      
+      ]
+    },
   }
 }

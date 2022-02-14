@@ -431,7 +431,7 @@ export class PointerService {
     return Number(bgPosY);
   }
 
-  private _convertLiteralPosToPercentage(literal: string): string | undefined {
+  private _convertLiteralPosToPercentage(literal: string): string | void {
     if (literal === "center") {
       return "50%";
     } else if (literal === "top" || literal === "left") {
@@ -458,7 +458,7 @@ export class PointerService {
   }
 
   // Check for current background size
-  private _currentBGSize(e: PointerEvent): number | undefined {
+  private _currentBGSize(e: PointerEvent): number | void {
     const bgSize = (e.target as HTMLElement).style.backgroundSize;
     if (bgSize.indexOf(" ") > -1) {
       // backgroundSize pattern "auto 100px" or "100px auto" or "100px 200px"

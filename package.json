@@ -7,7 +7,7 @@
     "start": "ng serve",
     "build": "ng build --configuration production",
     "test": "ng test",
-    "lint": "eslint src --ext .ts,.json --fix --cache",
+    "lint": "eslint projects --ext .ts,.json --fix --cache",
     "e2e": "ng e2e",
     "dist-package": "rm dist/package.json && cp dist-package.json dist/package.json",
     "packagr": "rm -rf .ng_build dist && ng-packagr -p ng-package.json && npm run dist-package",
@@ -26,41 +26,43 @@
     "@angular/common": "13.2.0",
     "@angular/compiler": "13.2.0",
     "@angular/core": "13.2.0",
-    "@angular/forms": "13.2.0",    
+    "@angular/forms": "13.2.0",
     "@angular/platform-browser": "13.2.0",
     "@angular/platform-browser-dynamic": "13.2.0",
-    "@angular/router": "13.2.0",
-    "core-js": "^3.21.0",
+    "@angular/router": "13.2.0",    
+    "core-js": "^3.21.0",    
     "rxjs": "^7.5.2",
-    "zone.js": "^0.11.4",
-    "prettier": "^2.5.1"
+    "zone.js": "^0.11.4"
   },
   "devDependencies": {
+    "@angular-devkit/build-angular": "^13.2.1",
     "@angular/cli": "13.2.1",
     "@angular/compiler-cli": "13.2.0",
     "@angular/language-service": "13.2.0",
     "@types/jasmine": "~3.10.3",
     "@types/jasminewd2": "~2.0.10",
-    "@types/node": "^17.0.14",    
+    "@types/node": "^17.0.14",
+    "@types/karma": "^6.3.3",
+    "@typescript-eslint/eslint-plugin": "^5.10.0",
+    "@typescript-eslint/parser": "^5.10.0",
+    "eslint": "^8.7.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-jasmine": "^4.1.3",
+    "eslint-plugin-prettier": "^4.0.0",
     "jasmine-core": "~4.0.0",
     "jasmine-spec-reporter": "~7.0.0",
     "karma": "~6.3.13",
     "karma-chrome-launcher": "~3.1.0",
     "karma-cli": "~2.0.0",
-    "karma-coverage-istanbul-reporter": "^3.0.3",
     "karma-jasmine": "^4.0.1",
     "karma-jasmine-html-reporter": "^1.7.0",
     "ng-packagr": "^13.2.1",
+    "nyc": "^15.1.0",
     "protractor": "~7.0.0",
-    "ts-node": "~10.4.0",    
-    "typescript": "4.5.5",
-    "@angular-devkit/build-angular": "^13.2.1",
-    "eslint": "^8.7.0",    
-    "eslint-plugin-jasmine": "^4.1.3",
-    "eslint-plugin-prettier": "^4.0.0",
-    "@typescript-eslint/eslint-plugin": "^5.10.0",
-    "@typescript-eslint/parser": "^5.10.0",
-    "eslint-config-prettier": "^8.3.0"    
+    "prettier": "^2.5.1",
+    "source-map-support": "^0.5.21",
+    "ts-node": "~10.4.0",
+    "typescript": "4.5.5"
   },
   "deprecated": false,
   "description": "A simple, responsive slideshow for Angular 4+.",
@@ -97,5 +99,18 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dockleryxk/ng-simple-slideshow.git"
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "exclude": [
+      "**/*.d.ts"
+    ],
+    "reporter": [
+      "html"
+    ],
+    "all": true
   }
 }

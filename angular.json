@@ -6,7 +6,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "ng-simple-slideshow": {
+    "ng-simple-slideshow-app": {
       "root": "",
       "sourceRoot": "src",
       "projectType": "application",
@@ -112,6 +112,37 @@
               "e2e/tsconfig.e2e.json"
             ],
             "exclude": []
+          }
+        }
+      }
+    },
+    "ngx-simple-slideshow-package": {
+      "projectType": "library",
+      "root": "projects/ngx-simple-slideshow",
+      "sourceRoot": "projects/ngx-simple-slideshow/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/ngx-simple-slideshow/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/ngx-simple-slideshow/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/ngx-simple-slideshow/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/ngx-simple-slideshow/src/test.ts",
+            "tsConfig": "projects/ngx-simple-slideshow/tsconfig.spec.json",
+            "karmaConfig": "projects/ngx-simple-slideshow/karma.conf.js"
           }
         }
       }

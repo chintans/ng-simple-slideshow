@@ -45,3 +45,4 @@ Thumbs.db
 firebase.json
 .firebase
 .angular
+dist
