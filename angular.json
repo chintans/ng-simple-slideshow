@@ -142,7 +142,7 @@
           "options": {
             "main": "projects/ngx-simple-slideshow/src/test.ts",
             "tsConfig": "projects/ngx-simple-slideshow/tsconfig.spec.json",
-            "karmaConfig": "projects/ngx-simple-slideshow/karma.conf.js"
+            "karmaConfig": "projects/ngx-simple-slideshow/karma.conf.ts"
           }
         }
       }
